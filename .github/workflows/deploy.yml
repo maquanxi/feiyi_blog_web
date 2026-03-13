@@ -16,3 +16,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}  # GitHub自动生成，无需手动配置
           publish_dir: ./  # 部署根目录的所有文件（你的HTML文件就在这）
+          persist-credentials: false #解决权限问题
