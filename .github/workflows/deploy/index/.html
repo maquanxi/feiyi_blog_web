@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>柳艺坊 - 柳编工艺在线设计交易平台</title>
+    <!-- 引入Tailwind和图标库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 自定义主题 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B5A2B',    // 深木色（主色）
+                        secondary: '#D4B886',  // 浅木色（辅助色）
+                        accent: '#6A994E',     // 柳条绿（点缀色）
+                        neutral: '#F8F4E9',    // 背景色
+                    },
+                    fontFamily: {
+                        sans: ['PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 页面模块默认隐藏，只有active的显示 */
+        .page-module {
+            display: none;
+        }
+        .page-module.active {
+            display: block;
+        }
+        /* 平滑过渡 */
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        /* 分类按钮激活状态 */
+        .category-btn.active {
+            background-color: #8B5A2B;
+            color: white;
+        }
+        /* 商品项默认显示，筛选时隐藏 */
+        .product-item {
+            display: block;
+        }
+        /* 购物车数量徽章 */
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #6A994E;
+            color: white;
+            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* 结算弹窗样式 */
+        .checkout-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .checkout-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .checkout-modal-content {
+            background-color: white;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-neutral text-gray-800">
+    <!-- 导航栏（全局显示） -->
+    <header class="sticky top-0 bg-white shadow-md z-50">
+        <div class="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
+            <!-- Logo -->
+            <a href="javascript:showPage('home')" class="flex items-center space-x-2">
+                <i class="fa fa-leaf text-accent text-2xl"></i>
+                <span class="text-xl font-bold text-primary">柳艺坊</span>
+            </a>
+
+            <!-- 导航菜单 - PC端 -->
+            <nav class="hidden md:flex space-x-8">
+                <a href="javascript:showPage('home')" class="text-primary font-medium hover:text-accent">首页</a>
+                <a href="javascript:showPage('shop')" class="text-gray-600 hover:text-accent">成品商城</a>
+                <a href="javascript:showPage('ai-custom')" class="text-gray-600 hover:text-accent">AI定制</a>
+                <a href="javascript:showPage('story')" class="text-gray-600 hover:text-accent">工艺故事</a>
+                <a href="javascript:showPage('about')" class="text-gray-600 hover:text-accent">关于我们</a>
+            </nav>
+
+            <!-- 用户操作区 -->
+            <div class="flex items-center space-x-4">
+                <!-- 购物车带数量徽章 -->
+                <a href="javascript:showPage('cart')" class="text-gray-600 hover:text-primary relative">
+                    <i class="fa fa-shopping-cart text-lg"></i>
+                    <span class="hidden md:inline ml-1">购物车</span>
+                    <span id="cartBadge" class="cart-badge hidden">0</span>
+                </a>
+                <a href="javascript:showPage('login')" class="text-gray-600 hover:text-primary">
+                    <i class="fa fa-user text-lg"></i>
+                    <span class="hidden md:inline ml-1">登录</span>
+                </a>
+                <!-- 移动端菜单按钮 -->
+                <button class="md:hidden text-gray-600" id="mobileMenuBtn">
+                    <i class="fa fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 移动端导航菜单（默认隐藏） -->
+        <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobileMenu">
+            <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
+                <a href="javascript:showPage('home')" class="py-2 text-primary font-medium">首页</a>
+                <a href="javascript:showPage('shop')" class="py-2 text-gray-600">成品商城</a>
+                <a href="javascript:showPage('ai-custom')" class="py-2 text-gray-600">AI定制</a>
+                <a href="javascript:showPage('story')" class="py-2 text-gray-600">工艺故事</a>
+                <a href="javascript:showPage('about')" class="py-2 text-gray-600">关于我们</a>
+                <a href="javascript:showPage('cart')" class="py-2 text-gray-600">购物车</a>
+                <a href="javascript:showPage('login')" class="py-2 text-gray-600">登录</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 页面内容容器 -->
+    <main class="min-h-[80vh]">
+        <!-- 1. 首页模块 -->
+        <div id="home" class="page-module active">
+            <!-- 轮播Banner -->
+            <section class="relative h-[500px] md:h-[600px] overflow-hidden">
+                <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://picsum.photos/id/225/1920/1080'); filter: brightness(0.8);"></div>
+                <div class="container mx-auto px-4 h-full flex items-center relative z-10">
+                    <div class="max-w-lg text-white">
+                        <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold mb-4">匠心柳编 · 定制美好</h1>
+                        <p class="text-lg mb-8">融合传统工艺与AI设计，打造专属于你的柳编艺术品</p>
+                        <div class="flex flex-wrap gap-4">
+                            <a href="javascript:showPage('ai-custom')" class="px-8 py-3 bg-accent text-white rounded-lg hover:bg-accent/90">
+                                <i class="fa fa-magic mr-2"></i>AI定制设计
+                            </a>
+                            <a href="javascript:showPage('shop')" class="px-8 py-3 bg-white text-primary rounded-lg hover:bg-gray-100">
+                                <i class="fa fa-shopping-bag mr-2"></i>浏览成品商城
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 核心优势 -->
+            <section class="py-16 container mx-auto px-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-xl shadow hover:shadow-lg transition-all">
+                        <i class="fa fa-pencil text-primary text-3xl mb-4"></i>
+                        <h3 class="text-xl font-bold mb-2">AI在线设计</h3>
+                        <p class="text-gray-600">文字描述即可生成专属柳编方案，简单高效</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow hover:shadow-lg transition-all">
+                        <i class="fa fa-shopping-bag text-primary text-3xl mb-4"></i>
+                        <h3 class="text-xl font-bold mb-2">匠人直供</h3>
+                        <p class="text-gray-600">精选柳编成品，手工制作，天然环保，现货即发</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow hover:shadow-lg transition-all">
+                        <i class="fa fa-leaf text-primary text-3xl mb-4"></i>
+                        <h3 class="text-xl font-bold mb-2">非遗传承</h3>
+                        <p class="text-gray-600">千年柳编工艺，匠人手工打造，每一件都有温度</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 2. 成品商城模块（静图+分类筛选） -->
+        <div id="shop" class="page-module">
+            <section class="py-12 container mx-auto px-4">
+                <!-- 返回按钮 -->
+                <div class="mb-6">
+                    <a href="javascript:showPage('home')" class="inline-flex items-center text-primary hover:text-accent">
+                        <i class="fa fa-arrow-left mr-2"></i> 返回首页
+                    </a>
+                </div>
+                <h2 class="text-2xl font-bold text-primary mb-6">成品商城</h2>
+                
+                <!-- 商品分类（可点击筛选） -->
+                <div class="flex flex-wrap gap-4 mb-8">
+                    <button onclick="filterProducts('all')" class="category-btn px-6 py-2 bg-primary text-white rounded-full active">全部</button>
+                    <button onclick="filterProducts('storage')" class="category-btn px-6 py-2 bg-white text-gray-700 rounded-full hover:bg-gray-100">收纳系列</button>
+                    <button onclick="filterProducts('picnic')" class="category-btn px-6 py-2 bg-white text-gray-700 rounded-full hover:bg-gray-100">野餐系列</button>
+                    <button onclick="filterProducts('flower')" class="category-btn px-6 py-2 bg-white text-gray-700 rounded-full hover:bg-gray-100">花篮系列</button>
+                </div>
+
+                <!-- 商品列表（静图 + 分类标识） -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="productList">
+                    <!-- 收纳系列 -->
+                    <div class="product-item storage bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/101/800/600" class="w-full h-48 object-cover" alt="柳编收纳篮">
+                        <div class="p-4">
+                            <h4 class="font-medium">柳编收纳篮</h4>
+                            <p class="text-primary font-bold mt-2">¥129</p>
+                            <button onclick="addToCart('柳编收纳篮', 129, 'https://picsum.photos/id/101/800/600')" class="mt-3 w-full bg-primary text-white py-2 rounded hover:bg-primary/90">加入购物车</button>
+                        </div>
+                    </div>
+                    <div class="product-item storage bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/102/800/600" class="w-full h-48 object-cover" alt="多层收纳筐">
+                        <div class="p-4">
+                            <h4 class="font-medium">多层收纳筐</h4>
+                            <p class="text-primary font-bold mt-2">¥189</p>
+                            <button onclick="addToCart('多层收纳筐', 189, 'https://picsum.photos/id/102/800/600')" class="mt-3 w-full bg-primary text-white py-2 rounded hover:bg-primary/90">加入购物车</button>
+                        </div>
+                    </div>
+                    <!-- 野餐系列 -->
+                    <div class="product-item picnic bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/103/800/600" class="w-full h-48 object-cover" alt="复古野餐篮">
+                        <div class="p-4">
+                            <h4 class="font-medium">复古野餐篮</h4>
+                            <p class="text-primary font-bold mt-2">¥259</p>
+                            <button onclick="addToCart('复古野餐篮', 259, 'https://picsum.photos/id/103/800/600')" class="mt-3 w-full bg-primary text-white py-2 rounded hover:bg-primary/90">加入购物车</button>
+                        </div>
+                    </div>
+                    <div class="product-item picnic bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/104/800/600" class="w-full h-48 object-cover" alt="便携野餐筐">
+                        <div class="p-4">
+                            <h4 class="font-medium">便携野餐筐</h4>
+                            <p class="text-primary font-bold mt-2">¥229</p>
+                            <button onclick="addToCart('便携野餐筐', 229, 'https://picsum.photos/id/104/800/600')" class="mt-3 w-full bg-primary text-white py-2 rounded hover:bg-primary/90">加入购物车</button>
+                        </div>
+                    </div>
+                    <!-- 花篮系列 -->
+                    <div class="product-item flower bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/105/800/600" class="w-full h-48 object-cover" alt="手工花篮">
+                        <div class="p-4">
+                            <h4 class="font-medium">手工花篮</h4>
+                            <p class="text-primary font-bold mt-2">¥89</p>
+                            <button onclick="addToCart('手工花篮', 89, 'https://picsum.photos/id/105/800/600')" class="mt-3 w-full bg-primary text-white py-2 rounded hover:bg-primary/90">加入购物车</button>
+                        </div>
+                    </div>
+                    <div class="product-item flower bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/106/800/600" class="w-full h-48 object-cover" alt="创意插花篮">
+                        <div class="p-4">
+                            <h4 class="font-medium">创意插花篮</h4>
+                            <p class="text-primary font-bold mt-2">¥119</p>
+                            <button onclick="addToCart('创意插花篮', 119, 'https://picsum.photos/id/106/800/600')" class="mt-3 w-full bg-primary text-white py-2 rounded hover:bg-primary/90">加入购物车</button>
+                        </div>
+                    </div>
+                    <!-- 补充商品 -->
+                    <div class="product-item storage bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/107/800/600" class="w-full h-48 object-cover" alt="创意装饰筐">
+                        <div class="p-4">
+                            <h4 class="font-medium">创意装饰筐</h4>
+                            <p class="text-primary font-bold mt-2">¥159</p>
+                            <button onclick="addToCart('创意装饰筐', 159, 'https://picsum.photos/id/107/800/600')" class="mt-3 w-full bg-primary text-white py-2 rounded hover:bg-primary/90">加入购物车</button>
+                        </div>
+                    </div>
+                    <div class="product-item flower bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/108/800/600" class="w-full h-48 object-cover" alt="壁挂式花篮">
+                        <div class="p-4">
+                            <h4 class="font-medium">壁挂式花篮</h4>
+                            <p class="text-primary font-bold mt-2">¥99</p>
+                            <button onclick="addToCart('壁挂式花篮', 99, 'https://picsum.photos/id/108/800/600')" class="mt-3 w-full bg-primary text-white py-2 rounded hover:bg-gray-800">加入购物车</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 3. AI定制模块（简化版） -->
+        <div id="ai-custom" class="page-module">
+            <section class="py-12 container mx-auto px-4">
+                <!-- 返回按钮 -->
+                <div class="mb-6">
+                    <a href="javascript:showPage('home')" class="inline-flex items-center text-primary hover:text-accent">
+                        <i class="fa fa-arrow-left mr-2"></i> 返回首页
+                    </a>
+                </div>
+                <h2 class="text-2xl font-bold text-primary mb-6 text-center">AI 柳编定制设计</h2>
+                
+                <div class="bg-white p-8 rounded-xl shadow max-w-2xl mx-auto">
+                    <!-- 基础需求描述（核心项，保留） -->
+                    <div class="mb-6">
+                        <label class="block font-medium mb-2 text-gray-700">描述你的定制需求</label>
+                        <textarea class="w-full border border-gray-300 rounded p-3 h-24 focus:outline-none focus:ring-2 focus:ring-accent/50" 
+                                  placeholder="例如：圆形收纳篮，带提手，浅棕色，直径30cm，高度20cm"></textarea>
+                    </div>
+
+                    <!-- 核心生成按钮 -->
+                    <button class="w-full bg-primary text-white py-3 rounded text-lg hover:bg-primary/90 transition-all">
+                        <i class="fa fa-magic mr-2"></i>生成设计方案
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- 4. 工艺故事模块 -->
+        <div id="story" class="page-module">
+            <section class="py-12 container mx-auto px-4">
+                <!-- 返回按钮 -->
+                <div class="mb-6">
+                    <a href="javascript:showPage('home')" class="inline-flex items-center text-primary hover:text-accent">
+                        <i class="fa fa-arrow-left mr-2"></i> 返回首页
+                    </a>
+                </div>
+                <h2 class="text-2xl font-bold text-primary mb-6">柳编工艺故事</h2>
+                
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/104/600/400" class="w-full h-48 object-cover rounded mb-4">
+                        <h3 class="text-lg font-bold">匠人故事</h3>
+                        <p class="text-gray-600 mt-2">从16岁学艺到如今58岁，王师傅坚守柳编工艺42年，他说："柳条有灵性，用心编才能出好活。"</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/112/600/400" class="w-full h-48 object-cover rounded mb-4">
+                        <h3 class="text-lg font-bold">非遗传承</h3>
+                        <p class="text-gray-600 mt-2">柳编工艺起源于新石器时代，历经千年演变，从实用工具到艺术珍品，始终焕发着独特的魅力。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition-all">
+                        <img src="https://picsum.photos/id/131/600/400" class="w-full h-48 object-cover rounded mb-4">
+                        <h3 class="text-lg font-bold">现代创新</h3>
+                        <p class="text-gray-600 mt-2">年轻编工将现代设计理念融入传统柳编，让老手艺焕发新活力，受到年轻人的追捧。</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 5. 关于我们模块 -->
+        <div id="about" class="page-module">
+            <section class="py-12 container mx-auto px-4 max-w-3xl">
+                <!-- 返回按钮 -->
+                <div class="mb-6">
+                    <a href="javascript:showPage('home')" class="inline-flex items-center text-primary hover:text-accent">
+                        <i class="fa fa-arrow-left mr-2"></i> 返回首页
+                    </a>
+                </div>
+                <h2 class="text-2xl font-bold text-primary mb-6">关于柳艺坊</h2>
+                
+                <p class="mb-4 leading-relaxed">
+                    柳艺坊是专注于柳编工艺的在线设计与交易平台，致力于连接传统柳编匠人与现代消费者。我们通过AI技术赋能传统手工艺，让每一位用户都能定制专属的柳编作品，同时帮助手艺人拓宽销售渠道，传承非遗文化。
+                </p>
+                <p class="leading-relaxed">
+                    我们的愿景是：让传统柳编工艺走进现代生活，让每一件手工艺品都能被看见、被喜爱、被传承。
+                </p>
+            </section>
+        </div>
+
+        <!-- 6. 购物车模块（增强版） -->
+        <div id="cart" class="page-module">
+            <section class="py-12 container mx-auto px-4 max-w-4xl">
+                <!-- 返回按钮 -->
+                <div class="mb-6">
+                    <a href="javascript:showPage('home')" class="inline-flex items-center text-primary hover:text-accent">
+                        <i class="fa fa-arrow-left mr-2"></i> 返回首页
+                    </a>
+                </div>
+                <h2 class="text-2xl font-bold text-primary mb-6">我的购物车</h2>
+                
+                <!-- 购物车列表（动态生成） -->
+                <div id="cartItemsContainer" class="bg-white rounded-xl shadow mb-6">
+                    <!-- 空购物车状态 -->
+                    <div id="emptyCart" class="p-12 text-center">
+                        <i class="fa fa-shopping-cart text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-500 mb-6">你的购物车还是空的</p>
+                        <a href="javascript:showPage('shop')" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90">
+                            去商城逛逛
+                        </a>
+                    </div>
+                    
+                    <!-- 有商品时显示的列表 -->
+                    <div id="cartItemsList" class="hidden">
+                        <!-- 表头 -->
+                        <div class="border-b border-gray-200 px-6 py-4 grid grid-cols-12 gap-4">
+                            <div class="col-span-7 font-medium">商品</div>
+                            <div class="col-span-2 font-medium text-center">单价</div>
+                            <div class="col-span-1 font-medium text-center">数量</div>
+                            <div class="col-span-1 font-medium text-center">小计</div>
+                            <div class="col-span-1 font-medium text-center">操作</div>
+                        </div>
+                        
+                        <!-- 购物车商品项（动态生成） -->
+                        <div id="cartItemsListContent" class="divide-y divide-gray-200"></div>
+                        
+                        <!-- 总价区域 -->
+                        <div class="px-6 py-4 flex justify-between items-center border-t border-gray-200">
+                            <div class="text-xl font-bold">总计：</div>
+                            <div id="cartTotalPrice" class="text-xl font-bold text-primary">¥0</div>
+                        </div>
+                        
+                        <!-- 结算按钮 -->
+                        <div class="px-6 py-4 flex justify-end">
+                            <button onclick="openCheckoutModal()" class="px-8 py-3 bg-accent text-white rounded-lg hover:bg-accent/90">
+                                <i class="fa fa-check mr-2"></i>去结算
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 7. 登录模块 -->
+        <div id="login" class="page-module">
+            <section class="py-12 container mx-auto px-4 flex items-center justify-center min-h-[70vh]">
+                <div class="bg-white p-8 rounded-xl shadow w-full max-w-md">
+                    <!-- 返回按钮 -->
+                    <div class="mb-6">
+                        <a href="javascript:showPage('home')" class="inline-flex items-center text-primary hover:text-accent">
+                            <i class="fa fa-arrow-left mr-2"></i> 返回首页
+                        </a>
+                    </div>
+                    <h2 class="text-2xl font-bold text-primary text-center mb-6">用户登录</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block font-medium mb-2">手机号</label>
+                        <input type="tel" class="w-full border border-gray-300 rounded p-3 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="请输入手机号">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block font-medium mb-2">验证码</label>
+                        <div class="flex gap-2">
+                            <input type="text" class="flex-1 border border-gray-300 rounded p-3 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="请输入验证码">
+                            <button class="px-4 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">获取验证码</button>
+                        </div>
+                    </div>
+                    <button class="w-full bg-primary text-white py-3 rounded text-lg hover:bg-primary/90 transition-all">
+                        登录
+                    </button>
+                    <div class="text-center mt-4">
+                        <a href="#" class="text-accent hover:text-accent/80">还没有账号？立即注册</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- 结算弹窗（新增收货信息表单） -->
+    <div id="checkoutModal" class="checkout-modal">
+        <div class="checkout-modal-content">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b">
+                <h3 class="text-xl font-bold text-primary">结算确认</h3>
+                <button onclick="closeCheckoutModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- 新增：收货信息表单 -->
+            <div class="mb-6 pb-6 border-b">
+                <h4 class="font-bold mb-4 text-lg">收货信息</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">联系人</label>
+                        <input type="text" id="contactName" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="请输入收件人姓名">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">联系电话</label>
+                        <input type="tel" id="contactPhone" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-accent/50" placeholder="请输入手机号码">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">收货地址</label>
+                    <textarea id="deliveryAddress" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-accent/50 h-20" placeholder="请输入详细收货地址（省/市/区/街道/门牌号）"></textarea>
+                </div>
+            </div>
+            
+            <!-- 结算商品列表 -->
+            <div id="checkoutItemsList" class="mb-6 divide-y divide-gray-200"></div>
+            
+            <!-- 结算总价 -->
+            <div class="flex justify-between items-center mb-6 pt-4 border-t">
+                <span class="text-lg font-bold">订单总价：</span>
+                <span id="checkoutTotalPrice" class="text-xl font-bold text-primary">¥0</span>
+            </div>
+            
+            <!-- 结算操作按钮 -->
+            <div class="flex gap-4 justify-end">
+                <button onclick="closeCheckoutModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">
+                    取消
+                </button>
+                <button onclick="confirmCheckout()" class="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent/90">
+                    确认下单
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚（全局显示） -->
+    <footer class="bg-primary text-white py-10">
+        <div class="container mx-auto px-4">
+            <div class="text-center">
+                <p>© 2026 柳艺坊 柳编工艺在线设计交易平台 版权所有</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 核心交互JS（增强购物车功能） -->
+    <script>
+        // 购物车数据存储
+        let cartItems = JSON.parse(localStorage.getItem('liuyifangCart')) || [];
+        
+        // 1. 移动端菜单切换
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            const icon = mobileMenuBtn.querySelector('i');
+            if (icon.classList.contains('fa-bars')) {
+                icon.classList.replace('fa-bars', 'fa-times');
+            } else {
+                icon.classList.replace('fa-times', 'fa-bars');
+            }
+        });
+
+        // 2. 页面切换核心函数
+        function showPage(pageId) {
+            // 隐藏所有页面
+            const allPages = document.querySelectorAll('.page-module');
+            allPages.forEach(page => {
+                page.classList.remove('active');
+            });
+            // 显示目标页面
+            const targetPage = document.getElementById(pageId);
+            targetPage.classList.add('active');
+            
+            // 关闭移动端菜单
+            if (!mobileMenu.classList.contains('hidden')) {
+                mobileMenu.classList.add('hidden');
+                mobileMenuBtn.querySelector('i').classList.replace('fa-times', 'fa-bars');
+            }
+            
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // 切换到商城时重置筛选为全部
+            if (pageId === 'shop') {
+                filterProducts('all');
+            }
+            
+            // 切换到购物车时刷新购物车显示
+            if (pageId === 'cart') {
+                renderCartItems();
+            }
+            
+            // 关闭结算弹窗（如果打开）
+            closeCheckoutModal();
+        }
+
+        // 3. 商品分类筛选函数
+        function filterProducts(category) {
+            // 获取所有分类按钮，重置激活状态
+            const categoryBtns = document.querySelectorAll('.category-btn');
+            categoryBtns.forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.remove('bg-primary', 'text-white');
+                btn.classList.add('bg-white', 'text-gray-700');
+            });
+            // 激活当前点击的按钮
+            event.target.classList.add('active');
+            event.target.classList.remove('bg-white', 'text-gray-700');
+            event.target.classList.add('bg-primary', 'text-white');
+
+            // 获取所有商品项，根据分类筛选
+            const allProducts = document.querySelectorAll('.product-item');
+            allProducts.forEach(product => {
+                if (category === 'all' || product.classList.contains(category)) {
+                    product.style.display = 'block';
+                } else {
+                    product.style.display = 'none';
+                }
+            });
+        }
+
+        // 4. 加入购物车函数
+        function addToCart(name, price, imageUrl) {
+            // 检查商品是否已在购物车中
+            const existingItemIndex = cartItems.findIndex(item => item.name === name);
+            
+            if (existingItemIndex > -1) {
+                // 商品已存在，增加数量
+                cartItems[existingItemIndex].quantity += 1;
+            } else {
+                // 新增商品
+                cartItems.push({
+                    name: name,
+                    price: price,
+                    imageUrl: imageUrl,
+                    quantity: 1
+                });
+            }
+            
+            // 保存到本地存储
+            localStorage.setItem('liuyifangCart', JSON.stringify(cartItems));
+            
+            // 更新购物车显示
+            updateCartBadge();
+            
+            // 提示用户
+            alert(`${name} 已加入购物车！`);
+        }
+
+        // 5. 更新购物车数量徽章
+        function updateCartBadge() {
+            const cartBadge = document.getElementById('cartBadge');
+            const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+            
+            if (totalItems > 0) {
+                cartBadge.textContent = totalItems;
+                cartBadge.classList.remove('hidden');
+            } else {
+                cartBadge.classList.add('hidden');
+            }
+        }
+
+        // 6. 渲染购物车商品列表
+        function renderCartItems() {
+            const emptyCart = document.getElementById('emptyCart');
+            const cartItemsList = document.getElementById('cartItemsList');
+            const cartItemsListContent = document.getElementById('cartItemsListContent');
+            const cartTotalPrice = document.getElementById('cartTotalPrice');
+            
+            // 清空现有内容
+            cartItemsListContent.innerHTML = '';
+            
+            // 计算总价
+            let totalPrice = 0;
+            
+            if (cartItems.length === 0) {
+                // 空购物车
+                emptyCart.classList.remove('hidden');
+                cartItemsList.classList.add('hidden');
+                cartTotalPrice.textContent = '¥0';
+            } else {
+                // 显示购物车商品
+                emptyCart.classList.add('hidden');
+                cartItemsList.classList.remove('hidden');
+                
+                // 遍历购物车商品
+                cartItems.forEach((item, index) => {
+                    const itemSubtotal = item.price * item.quantity;
+                    totalPrice += itemSubtotal;
+                    
+                    // 创建商品项HTML
+                    const cartItemHTML = `
+                        <div class="px-6 py-4 grid grid-cols-12 gap-4 items-center">
+                            <div class="col-span-7 flex items-center gap-4">
+                                <img src="${item.imageUrl}" class="w-16 h-16 object-cover rounded" alt="${item.name}">
+                                <span>${item.name}</span>
+                            </div>
+                            <div class="col-span-2 text-center">¥${item.price}</div>
+                            <div class="col-span-1 text-center">
+                                <div class="flex justify-center items-center gap-1">
+                                    <button onclick="changeQuantity(${index}, -1)" class="w-6 h-6 flex items-center justify-center border rounded hover:bg-gray-100">-</button>
+                                    <span>${item.quantity}</span>
+                                    <button onclick="changeQuantity(${index}, 1)" class="w-6 h-6 flex items-center justify-center border rounded hover:bg-gray-100">+</button>
+                                </div>
+                            </div>
+                            <div class="col-span-1 text-center">¥${itemSubtotal}</div>
+                            <div class="col-span-1 text-center">
+                                <button onclick="removeFromCart(${index})" class="text-red-500 hover:text-red-700">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    cartItemsListContent.innerHTML += cartItemHTML;
+                });
+                
+                // 更新总价显示
+                cartTotalPrice.textContent = `¥${totalPrice}`;
+            }
+        }
+
+        // 7. 修改商品数量（支持自由增减）
+        function changeQuantity(index, change) {
+            const newQuantity = cartItems[index].quantity + change;
+            
+            // 数量不能小于1
+            if (newQuantity < 1) {
+                // 数量减到0时询问是否删除商品
+                if (confirm(`确定要移除【${cartItems[index].name}】吗？`)) {
+                    removeFromCart(index);
+                }
+                return;
+            }
+            
+            // 更新数量
+            cartItems[index].quantity = newQuantity;
+            
+            // 保存并刷新
+            localStorage.setItem('liuyifangCart', JSON.stringify(cartItems));
+            updateCartBadge();
+            renderCartItems();
+        }
+
+        // 8. 从购物车移除商品
+        function removeFromCart(index) {
+            // 删除商品
+            cartItems.splice(index, 1);
+            
+            // 保存并刷新
+            localStorage.setItem('liuyifangCart', JSON.stringify(cartItems));
+            updateCartBadge();
+            renderCartItems();
+        }
+
+        // 9. 打开结算弹窗
+        function openCheckoutModal() {
+            // 如果购物车为空，提示并返回
+            if (cartItems.length === 0) {
+                alert('购物车为空，无法结算！');
+                return;
+            }
+            
+            const checkoutModal = document.getElementById('checkoutModal');
+            const checkoutItemsList = document.getElementById('checkoutItemsList');
+            const checkoutTotalPrice = document.getElementById('checkoutTotalPrice');
+            
+            // 清空现有内容
+            checkoutItemsList.innerHTML = '';
+            
+            // 清空收货信息表单
+            document.getElementById('contactName').value = '';
+            document.getElementById('contactPhone').value = '';
+            document.getElementById('deliveryAddress').value = '';
+            
+            // 计算总价
+            let totalPrice = 0;
+            
+            // 渲染结算商品列表
+            cartItems.forEach((item, index) => {
+                const itemSubtotal = item.price * item.quantity;
+                totalPrice += itemSubtotal;
+                
+                const checkoutItemHTML = `
+                    <div class="py-4 flex items-center gap-4">
+                        <img src="${item.imageUrl}" class="w-16 h-16 object-cover rounded" alt="${item.name}">
+                        <div class="flex-1">
+                            <div class="font-medium">${item.name}</div>
+                            <div class="text-sm text-gray-500 mt-1">
+                                单价：¥${item.price} × 数量：${item.quantity} = 小计：¥${itemSubtotal}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                checkoutItemsList.innerHTML += checkoutItemHTML;
+            });
+            
+            // 更新结算总价
+            checkoutTotalPrice.textContent = `¥${totalPrice}`;
+            
+            // 显示弹窗
+            checkoutModal.classList.add('active');
+            // 禁止页面滚动
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 10. 关闭结算弹窗
+        function closeCheckoutModal() {
+            const checkoutModal = document.getElementById('checkoutModal');
+            checkoutModal.classList.remove('active');
+            // 恢复页面滚动
+            document.body.style.overflow = '';
+        }
+
+        // 11. 确认结算（新增收货信息验证和展示）
+        function confirmCheckout() {
+            // 获取收货信息
+            const contactName = document.getElementById('contactName').value.trim();
+            const contactPhone = document.getElementById('contactPhone').value.trim();
+            const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+            
+            // 验证收货信息
+            if (!contactName) {
+                alert('请输入联系人姓名！');
+                document.getElementById('contactName').focus();
+                return;
+            }
+            
+            if (!contactPhone) {
+                alert('请输入联系电话！');
+                document.getElementById('contactPhone').focus();
+                return;
+            }
+            
+            // 简单的手机号验证
+            const phoneReg = /^1[3-9]\d{9}$/;
+            if (!phoneReg.test(contactPhone)) {
+                alert('请输入有效的手机号码！');
+                document.getElementById('contactPhone').focus();
+                return;
+            }
+            
+            if (!deliveryAddress) {
+                alert('请输入详细收货地址！');
+                document.getElementById('deliveryAddress').focus();
+                return;
+            }
+            
+            // 生成订单信息
+            let orderInfo = "【订单确认】\n\n";
+            orderInfo += "📦 收货信息：\n";
+            orderInfo += `联系人：${contactName}\n`;
+            orderInfo += `联系电话：${contactPhone}\n`;
+            orderInfo += `收货地址：${deliveryAddress}\n\n`;
+            orderInfo += "🛒 商品清单：\n";
+            
+            cartItems.forEach((item, index) => {
+                orderInfo += `${index + 1}. ${item.name} - 单价¥${item.price} × 数量${item.quantity} = 小计¥${item.price * item.quantity}\n`;
+            });
+            
+            const totalPrice = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+            orderInfo += `\n💰 订单总价：¥${totalPrice}\n\n✅ 感谢你的购买！订单提交成功，我们将尽快为你发货。`;
+            
+            // 显示订单信息
+            alert(orderInfo);
+            
+            // 清空购物车
+            cartItems = [];
+            localStorage.setItem('liuyifangCart', JSON.stringify(cartItems));
+            updateCartBadge();
+            renderCartItems();
+            
+            // 关闭弹窗
+            closeCheckoutModal();
+            
+            // 跳转到首页
+            showPage('home');
+        }
+
+        // 页面加载时初始化购物车徽章
+        window.addEventListener('load', () => {
+            updateCartBadge();
+        });
+        
+        // 点击弹窗外层关闭弹窗
+        document.getElementById('checkoutModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('checkoutModal')) {
+                closeCheckoutModal();
+            }
+        });
+    </script>
+</body>
+</html>
